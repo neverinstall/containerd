@@ -42,6 +42,11 @@ const (
 	// the target image and will be passed to snapshotters for preparing layers in
 	// parallel. Skipping some layers is allowed and only affects performance.
 	TargetImageLayersLabel = "containerd.io/snapshot/cri.image-layers"
+	// ActiveSnapshotPathLabel is an optional label which if present the rw layer of
+	// the active snapshot will be a subdirectory of the given value itself and
+	// this folder will not be cleaned up on container removal
+	// Currently only supported for overlay snapshotter
+	ActiveSnapshotPathLabel = "containerd.io/snapshot/overlay.active.path"
 )
 
 // AppendInfoHandlerWrapper makes a handler which appends some basic information

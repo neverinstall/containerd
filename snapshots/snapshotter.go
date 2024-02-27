@@ -379,6 +379,22 @@ func WithLabels(labels map[string]string) Opt {
 	}
 }
 
+func WithContainerSnapshotLabels(labels map[string]string) Opt {
+	return func(info *Info) error {
+		if info.Labels == nil {
+			info.Labels = make(map[string]string)
+		}
+
+		for k, v := range labels {
+			if strings.HasPrefix(k, "containerd.io/snapshot") {
+				info.Labels[k] = v
+			}
+		}
+
+		return nil
+	}
+}
+
 // FilterInheritedLabels filters the provided labels by removing any key which
 // isn't a snapshot label. Snapshot labels have a prefix of "containerd.io/snapshot/"
 // or are the "containerd.io/snapshot.ref" label.

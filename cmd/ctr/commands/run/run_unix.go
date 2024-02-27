@@ -189,7 +189,8 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 				// For some snapshotter, such as overlaybd, it can provide 2 kind of writable snapshot(overlayfs dir or block-device)
 				// by command label values.
 				cOpts = append(cOpts, containerd.WithNewSnapshot(id, image,
-					snapshots.WithLabels(commands.LabelArgs(context.StringSlice("snapshotter-label")))))
+					snapshots.WithLabels(commands.LabelArgs(context.StringSlice("snapshotter-label"))),
+					snapshots.WithContainerSnapshotLabels(commands.LabelArgs(context.StringSlice("label")))))
 			}
 			cOpts = append(cOpts, containerd.WithImageStopSignal(image, "SIGTERM"))
 		}
