@@ -589,20 +589,19 @@ func (o *snapshotter) prepareDirectory(ctx context.Context, snapshotDir string, 
 	// then return this dir
 	var folderName string
 	err := filepath.Walk(snapshotDir, func(path string, info os.FileInfo, err error) error {
-		logrus.Println("walking", info.Name(), "in", snapshotDir)
 		if err != nil {
 			return err
 		}
 		if info.IsDir() && info.Name() != filepath.Base(snapshotDir) {
-
-			logrus.Println("found one contender while walking", info.Name(), "in", snapshotDir)
 			// Check if the subfolder contains "work" and "fs" sub-subfolders
 			workFolder := filepath.Join(path, "work")
 			fsFolder := filepath.Join(path, "fs")
 			if _, err := os.Stat(workFolder); err == nil {
 				if _, err := os.Stat(fsFolder); err == nil {
-					logrus.Println("found one contender while walking", info.Name(), "in ", snapshotDir)
 					folderName = info.Name()
+					if err := clearUpperLayerNeverinstallCache(fsFolder); err != nil {
+						return err
+					}
 					return filepath.SkipDir // Stop walking subdirectories
 				}
 			}
@@ -620,6 +619,19 @@ func (o *snapshotter) prepareDirectory(ctx context.Context, snapshotDir string, 
 	}
 
 	return filepath.Join(snapshotDir, folderName), nil
+}
+
+func clearUpperLayerNeverinstallCache(dirpath string) error {
+	cacheDir := filepath.Join(dirpath, "neverinstall")
+	return filepath.Walk(cacheDir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() && info.Name() != filepath.Base(cacheDir) {
+			if err := os.Remove(path); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (o *snapshotter) mounts(info *snapshots.Info, s storage.Snapshot, key string) []mount.Mount {
