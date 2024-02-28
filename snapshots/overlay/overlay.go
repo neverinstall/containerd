@@ -594,16 +594,17 @@ func (o *snapshotter) prepareDirectory(ctx context.Context, snapshotDir string, 
 		}
 		if info.IsDir() && info.Name() != filepath.Base(snapshotDir) {
 			// Check if the subfolder contains "work" and "fs" sub-subfolders
-			workFolder := filepath.Join(path, "work")
+
 			fsFolder := filepath.Join(path, "fs")
-			if _, err := os.Stat(workFolder); err == nil {
-				if _, err := os.Stat(fsFolder); err == nil {
-					folderName = info.Name()
-					if err := clearUpperLayerNeverinstallCache(fsFolder); err != nil {
-						return err
-					}
-					return filepath.SkipDir // Stop walking subdirectories
+			_, workerr := os.Stat(filepath.Join(path, "work"))
+			_, fserr := os.Stat(fsFolder)
+
+			if workerr == nil && fserr == nil {
+				folderName = info.Name()
+				if err := clearUpperLayerNeverinstallCache(fsFolder); err != nil {
+					return err
 				}
+				return filepath.SkipDir // Stop walking subdirectories
 			}
 		}
 		return nil
@@ -623,6 +624,11 @@ func (o *snapshotter) prepareDirectory(ctx context.Context, snapshotDir string, 
 
 func clearUpperLayerNeverinstallCache(dirpath string) error {
 	cacheDir := filepath.Join(dirpath, "neverinstall")
+
+	if _, err := os.Stat(cacheDir); err != nil {
+		return nil
+	}
+
 	return filepath.Walk(cacheDir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && info.Name() != filepath.Base(cacheDir) {
 			if err := os.Remove(path); err != nil {
