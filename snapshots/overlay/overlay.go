@@ -626,10 +626,19 @@ func clearUpperLayerNeverinstallCache(dirpath string) error {
 	cacheDir := filepath.Join(dirpath, "neverinstall")
 
 	if _, err := os.Stat(cacheDir); err != nil {
-		return nil
+		if os.IsNotExist(err) {
+			// The directory does not exist, nothing to do
+			return nil
+		}
+		// Some other error occurred when checking the directory
+		return err
 	}
 
 	return filepath.Walk(cacheDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if !info.IsDir() && info.Name() != filepath.Base(cacheDir) {
 			if err := os.Remove(path); err != nil {
 				return err
