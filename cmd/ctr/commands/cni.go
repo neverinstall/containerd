@@ -38,7 +38,8 @@ const (
 
 // ctr pass cni network metadata to containerd if ctr run use option of --cni
 type NetworkMetaData struct {
-	EnableCni bool
+	EnableCni   bool
+	CniConfFile string
 }
 
 func FullID(ctx context.Context, c containerd.Container) string {
