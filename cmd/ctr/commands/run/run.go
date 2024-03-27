@@ -124,8 +124,8 @@ var Command = cli.Command{
 			Usage: "Enable cni networking for the container",
 		},
 		cli.StringFlag{
-			Name:  "cni-conf-file",
-			Usage: "Path to the cni conflist file",
+			Name:  "cni-conf-dir",
+			Usage: "Path to the cni configuration directory",
 		},
 	}, append(platformRunFlags,
 		append(append(commands.SnapshotterFlags, []cli.Flag{commands.SnapshotterLabels}...),
@@ -136,12 +136,12 @@ var Command = cli.Command{
 			id  string
 			ref string
 
-			rm          = context.Bool("rm")
-			tty         = context.Bool("tty")
-			detach      = context.Bool("detach")
-			config      = context.IsSet("config")
-			enableCNI   = context.Bool("cni")
-			cniConfFile = context.String("cni-conf-file")
+			rm         = context.Bool("rm")
+			tty        = context.Bool("tty")
+			detach     = context.Bool("detach")
+			config     = context.IsSet("config")
+			enableCNI  = context.Bool("cni")
+			cniConfDir = context.String("cni-conf-dir")
 		)
 
 		if config {
@@ -187,8 +187,8 @@ var Command = cli.Command{
 		}
 		var network gocni.CNI
 		if enableCNI {
-			if cniConfFile != "" {
-				if network, err = gocni.New(gocni.WithConfFile(cniConfFile)); err != nil {
+			if cniConfDir != "" {
+				if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithPluginConfDir(cniConfDir)); err != nil {
 					return err
 				}
 			} else if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
