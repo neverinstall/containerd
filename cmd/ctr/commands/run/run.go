@@ -188,7 +188,12 @@ var Command = cli.Command{
 		var network gocni.CNI
 		if enableCNI {
 			if cniConfDir != "" {
-				if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithPluginConfDir(cniConfDir)); err != nil {
+				network, err = gocni.New(gocni.WithPluginConfDir(cniConfDir))
+				if err != nil {
+					return err
+				}
+
+				if err := network.Load(gocni.WithDefaultConf); err != nil {
 					return err
 				}
 			} else if network, err = gocni.New(gocni.WithDefaultConf); err != nil {

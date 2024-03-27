@@ -51,7 +51,12 @@ func RemoveCniNetworkIfExist(ctx context.Context, container containerd.Container
 	var network gocni.CNI
 	if networkMetaData.EnableCni {
 		if networkMetaData.CniConfDir != "" {
-			if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithPluginConfDir(networkMetaData.CniConfDir)); err != nil {
+			network, err = gocni.New(gocni.WithPluginConfDir(networkMetaData.CniConfDir))
+			if err != nil {
+				return err
+			}
+
+			if err := network.Load(gocni.WithDefaultConf); err != nil {
 				return err
 			}
 		} else {
