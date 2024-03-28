@@ -123,6 +123,26 @@ var Command = cli.Command{
 			Name:  "cni",
 			Usage: "Enable cni networking for the container",
 		},
+		cli.BoolFlag{
+			Name:  "bandwidth",
+			Usage: "Enable bandwidth plugin for cni.",
+		},
+		cli.Uint64Flag{
+			Name:  "ingress-rate",
+			Usage: "Ingress rate for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "egress-rate",
+			Usage: "Egress rate for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "ingress-burst",
+			Usage: "Ingress burst for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "egress-burst",
+			Usage: "Egress burst for cni bandwidth plugin",
+		},
 	}, append(platformRunFlags,
 		append(append(commands.SnapshotterFlags, []cli.Flag{commands.SnapshotterLabels}...),
 			commands.ContainerFlags...)...)...),
@@ -132,11 +152,12 @@ var Command = cli.Command{
 			id  string
 			ref string
 
-			rm        = context.Bool("rm")
-			tty       = context.Bool("tty")
-			detach    = context.Bool("detach")
-			config    = context.IsSet("config")
-			enableCNI = context.Bool("cni")
+			rm              = context.Bool("rm")
+			tty             = context.Bool("tty")
+			detach          = context.Bool("detach")
+			config          = context.IsSet("config")
+			enableCNI       = context.Bool("cni")
+			enableBandwidth = context.Bool("bandwidth")
 		)
 
 		if config {
@@ -187,6 +208,16 @@ var Command = cli.Command{
 			}
 		}
 
+		var cniNamespaceOpts []gocni.NamespaceOpts
+		if enableBandwidth {
+			cniNamespaceOpts = append(cniNamespaceOpts, gocni.WithCapabilityBandWidth(gocni.BandWidth{
+				IngressRate:  context.Uint64("ingress-rate"),
+				EgressRate:   context.Uint64("egress-rate"),
+				IngressBurst: context.Uint64("ingress-burst"),
+				EgressBurst:  context.Uint64("egress-burst"),
+			}))
+		}
+
 		opts := tasks.GetNewTaskOpts(context)
 		ioOpts := []cio.Opt{cio.WithFIFODir(context.String("fifo-dir"))}
 		task, err := tasks.NewTask(ctx, client, container, context.String("checkpoint"), con, context.Bool("null-io"), context.String("log-uri"), ioOpts, opts...)
@@ -198,7 +229,7 @@ var Command = cli.Command{
 		if !detach {
 			defer func() {
 				if enableCNI {
-					if err := network.Remove(ctx, commands.FullID(ctx, container), ""); err != nil {
+					if err := network.Remove(ctx, commands.FullID(ctx, container), "", cniNamespaceOpts...); err != nil {
 						logrus.WithError(err).Error("network review")
 					}
 				}
@@ -220,7 +251,7 @@ var Command = cli.Command{
 				return err
 			}
 
-			if _, err := network.Setup(ctx, commands.FullID(ctx, container), netNsPath); err != nil {
+			if _, err := network.SetupSerially(ctx, commands.FullID(ctx, container), netNsPath, cniNamespaceOpts...); err != nil {
 				return err
 			}
 		}
