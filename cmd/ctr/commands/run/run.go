@@ -123,6 +123,26 @@ var Command = cli.Command{
 			Name:  "cni",
 			Usage: "Enable cni networking for the container",
 		},
+		cli.BoolFlag{
+			Name:  "bandwidth",
+			Usage: "Enable bandwidth plugin for cni.",
+		},
+		cli.Uint64Flag{
+			Name:  "ingress-rate",
+			Usage: "Ingress rate for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "egress-rate",
+			Usage: "Egress rate for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "ingress-burst",
+			Usage: "Ingress burst for cni bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "egress-burst",
+			Usage: "Egress burst for cni bandwidth plugin",
+		},
 	}, append(platformRunFlags,
 		append(append(commands.SnapshotterFlags, []cli.Flag{commands.SnapshotterLabels}...),
 			commands.ContainerFlags...)...)...),
@@ -132,11 +152,12 @@ var Command = cli.Command{
 			id  string
 			ref string
 
-			rm        = context.Bool("rm")
-			tty       = context.Bool("tty")
-			detach    = context.Bool("detach")
-			config    = context.IsSet("config")
-			enableCNI = context.Bool("cni")
+			rm              = context.Bool("rm")
+			tty             = context.Bool("tty")
+			detach          = context.Bool("detach")
+			config          = context.IsSet("config")
+			enableCNI       = context.Bool("cni")
+			enableBandwidth = context.Bool("bandwidth")
 		)
 
 		if config {
@@ -220,7 +241,17 @@ var Command = cli.Command{
 				return err
 			}
 
-			if _, err := network.Setup(ctx, commands.FullID(ctx, container), netNsPath); err != nil {
+			var namespaceOpts []gocni.NamespaceOpts
+			if enableBandwidth {
+				namespaceOpts = append(namespaceOpts, gocni.WithCapabilityBandWidth(gocni.BandWidth{
+					IngressRate:  context.Uint64("ingress-rate"),
+					EgressRate:   context.Uint64("egress-rate"),
+					IngressBurst: context.Uint64("ingress-burst"),
+					EgressBurst:  context.Uint64("egress-burst"),
+				}))
+			}
+
+			if _, err := network.Setup(ctx, commands.FullID(ctx, container), netNsPath, namespaceOpts...); err != nil {
 				return err
 			}
 		}

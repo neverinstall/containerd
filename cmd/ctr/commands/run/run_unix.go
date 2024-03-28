@@ -38,6 +38,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containerd/containerd/runtime/v2/runc/options"
 	"github.com/containerd/containerd/snapshots"
+	gocni "github.com/containerd/go-cni"
 	"github.com/intel/goresctrl/pkg/blockio"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
@@ -245,6 +246,14 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 
 		if context.Bool("cni") {
 			cniMeta := &commands.NetworkMetaData{EnableCni: true}
+			if context.Bool("bandwidth") {
+				cniMeta.CniBandwidthConf = gocni.BandWidth{
+					IngressRate:  context.Uint64("ingress-rate"),
+					EgressRate:   context.Uint64("egress-rate"),
+					IngressBurst: context.Uint64("ingress-burst"),
+					EgressBurst:  context.Uint64("egress-burst"),
+				}
+			}
 			cOpts = append(cOpts, containerd.WithContainerExtension(commands.CtrCniMetadataExtension, cniMeta))
 		}
 		if caps := context.StringSlice("cap-add"); len(caps) > 0 {

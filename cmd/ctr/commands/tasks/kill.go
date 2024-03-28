@@ -53,7 +53,7 @@ func RemoveCniNetworkIfExist(ctx context.Context, container containerd.Container
 		if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
 			return err
 		}
-		if err := network.Remove(ctx, commands.FullID(ctx, container), ""); err != nil {
+		if err := network.Remove(ctx, commands.FullID(ctx, container), "", gocni.WithCapabilityBandWidth(networkMetaData.CniBandwidthConf)); err != nil {
 			logrus.WithError(err).Error("network remove error")
 			return err
 		}
