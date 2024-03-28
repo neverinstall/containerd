@@ -21,6 +21,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/containerd/console"
@@ -123,9 +124,13 @@ var Command = cli.Command{
 			Name:  "cni",
 			Usage: "Enable cni networking for the container",
 		},
-		cli.StringFlag{
-			Name:  "cni-bandwidth-conf",
-			Usage: "Cni conf for bandwidth plugin",
+		cli.Uint64Flag{
+			Name:  "ingress-rate",
+			Usage: "Ingress rate for bandwidth plugin",
+		},
+		cli.Uint64Flag{
+			Name:  "egress-rate",
+			Usage: "Egress rate for bandwidth plugin",
 		},
 	}, append(platformRunFlags,
 		append(append(commands.SnapshotterFlags, []cli.Flag{commands.SnapshotterLabels}...),
@@ -186,14 +191,8 @@ var Command = cli.Command{
 		}
 		var network gocni.CNI
 		if enableCNI {
-			if context.String("cni-bandwidth-conf") == "" {
-				if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
-					return err
-				}
-			} else {
-				if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithConfFile(context.String("cni-bandwidth-conf"))); err != nil {
-					return err
-				}
+			if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
+				return err
 			}
 		}
 
@@ -204,11 +203,17 @@ var Command = cli.Command{
 			return err
 		}
 
+		var namespaceOpts []gocni.NamespaceOpts
+		bandwidthConf := getBandwidthConf(context)
+		if bandwidthConf != nil {
+			namespaceOpts = append(namespaceOpts, gocni.WithCapabilityBandWidth(*bandwidthConf))
+		}
+
 		var statusC <-chan containerd.ExitStatus
 		if !detach {
 			defer func() {
 				if enableCNI {
-					if err := network.Remove(ctx, commands.FullID(ctx, container), ""); err != nil {
+					if err := network.Remove(ctx, commands.FullID(ctx, container), "", namespaceOpts...); err != nil {
 						logrus.WithError(err).Error("network review")
 					}
 				}
@@ -230,7 +235,7 @@ var Command = cli.Command{
 				return err
 			}
 
-			if _, err := network.Setup(ctx, commands.FullID(ctx, container), netNsPath); err != nil {
+			if _, err := network.Setup(ctx, commands.FullID(ctx, container), netNsPath, namespaceOpts...); err != nil {
 				return err
 			}
 		}
@@ -261,6 +266,26 @@ var Command = cli.Command{
 		}
 		return nil
 	},
+}
+
+func getBandwidthConf(context *cli.Context) *gocni.BandWidth {
+	if context.Uint64("ingress-rate") == 0 && context.Uint64("egress-rate") == 0 {
+		return nil
+	}
+
+	conf := &gocni.BandWidth{}
+
+	if ingressRate := context.Uint64("ingress-rate"); ingressRate > 0 {
+		conf.IngressRate = ingressRate
+		conf.IngressBurst = math.MaxUint64
+	}
+
+	if egressRate := context.Uint64("egress-rate"); egressRate > 0 {
+		conf.EgressRate = egressRate
+		conf.EgressBurst = math.MaxUint64
+	}
+
+	return conf
 }
 
 // buildLabel builds the labels from command line labels and the image labels

@@ -246,7 +246,10 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 		if context.Bool("cni") {
 			cniMeta := &commands.NetworkMetaData{EnableCni: true}
 
-			cniMeta.CniBandwidthConfFile = context.String("cni-bandwidth-conf")
+			bandwidthConf := getBandwidthConf(context)
+			if bandwidthConf != nil {
+				cniMeta.BandwidthConf = *bandwidthConf
+			}
 
 			cOpts = append(cOpts, containerd.WithContainerExtension(commands.CtrCniMetadataExtension, cniMeta))
 		}

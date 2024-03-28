@@ -50,17 +50,16 @@ func RemoveCniNetworkIfExist(ctx context.Context, container containerd.Container
 
 	var network gocni.CNI
 	if networkMetaData.EnableCni {
-		if networkMetaData.CniBandwidthConfFile == "" {
-			if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
-				return err
-			}
-		} else {
-			if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithConfFile(networkMetaData.CniBandwidthConfFile)); err != nil {
-				return err
-			}
+		if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
+			return err
 		}
 
-		if err := network.Remove(ctx, commands.FullID(ctx, container), ""); err != nil {
+		var namespaceOpts []gocni.NamespaceOpts
+		if networkMetaData.BandwidthConf != (gocni.BandWidth{}) {
+			namespaceOpts = append(namespaceOpts, gocni.WithCapabilityBandWidth(networkMetaData.BandwidthConf))
+		}
+
+		if err := network.Remove(ctx, commands.FullID(ctx, container), "", namespaceOpts...); err != nil {
 			logrus.WithError(err).Error("network remove error")
 			return err
 		}

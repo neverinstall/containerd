@@ -22,6 +22,7 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
+	gocni "github.com/containerd/go-cni"
 	"github.com/containerd/typeurl/v2"
 )
 
@@ -38,8 +39,8 @@ const (
 
 // ctr pass cni network metadata to containerd if ctr run use option of --cni
 type NetworkMetaData struct {
-	EnableCni            bool
-	CniBandwidthConfFile string
+	EnableCni     bool
+	BandwidthConf gocni.BandWidth
 }
 
 func FullID(ctx context.Context, c containerd.Container) string {
