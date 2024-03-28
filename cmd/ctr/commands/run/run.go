@@ -275,14 +275,15 @@ func getBandwidthConf(context *cli.Context) *gocni.BandWidth {
 
 	conf := &gocni.BandWidth{}
 
+	// burst cannot be more than 4GB
 	if ingressRate := context.Uint64("ingress-rate"); ingressRate > 0 {
 		conf.IngressRate = ingressRate
-		conf.IngressBurst = math.MaxUint64
+		conf.IngressBurst = math.MaxUint32
 	}
 
 	if egressRate := context.Uint64("egress-rate"); egressRate > 0 {
 		conf.EgressRate = egressRate
-		conf.EgressBurst = math.MaxUint64
+		conf.EgressBurst = math.MaxUint32
 	}
 
 	return conf
