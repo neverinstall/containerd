@@ -123,6 +123,10 @@ var Command = cli.Command{
 			Name:  "cni",
 			Usage: "Enable cni networking for the container",
 		},
+		cli.Uint64Flag{
+			Name:  "cni-bandwidth-conf",
+			Usage: "Cni conf for bandwidth plugin",
+		},
 	}, append(platformRunFlags,
 		append(append(commands.SnapshotterFlags, []cli.Flag{commands.SnapshotterLabels}...),
 			commands.ContainerFlags...)...)...),
@@ -182,7 +186,7 @@ var Command = cli.Command{
 		}
 		var network gocni.CNI
 		if enableCNI {
-			if network, err = gocni.New(gocni.WithDefaultConf); err != nil {
+			if network, err = gocni.New(gocni.WithDefaultConf, gocni.WithConfFile(context.String("cni-bandwidth-conf"))); err != nil {
 				return err
 			}
 		}
