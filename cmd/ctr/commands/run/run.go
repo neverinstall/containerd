@@ -21,7 +21,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/containerd/console"
@@ -278,12 +277,12 @@ func getBandwidthConf(context *cli.Context) *gocni.BandWidth {
 	// burst cannot be more than 4GB
 	if ingressRate := context.Uint64("ingress-rate"); ingressRate > 0 {
 		conf.IngressRate = ingressRate
-		conf.IngressBurst = math.MaxUint32
+		conf.IngressBurst = ingressRate
 	}
 
 	if egressRate := context.Uint64("egress-rate"); egressRate > 0 {
 		conf.EgressRate = egressRate
-		conf.EgressBurst = math.MaxUint32
+		conf.EgressBurst = egressRate
 	}
 
 	return conf
